@@ -564,7 +564,7 @@ public class CommitProvider implements CommitService {
 			SememeSequenceSet sememesInCommit = new SememeSequenceSet();
 
 			chronicle.getVersionList().forEach((version) -> {
-				if (((ObjectVersionImpl) version).isUncommitted() && version.getAuthorSequence() == editCoordinate.getAuthorSequence()) {
+				if (((ObjectVersionImpl) version).isUncommitted() && ((ObjectVersionImpl)version).getAuthorSequence() == editCoordinate.getAuthorSequence()) {
 					((ObjectVersionImpl) version).setTime(commitTime);
 					stampsInCommit.add(version.getStampSequence());
 				}
