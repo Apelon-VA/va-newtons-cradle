@@ -776,6 +776,9 @@ public class CradleTaxonomyProvider implements TaxonomyService, ConceptActiveSer
                         taxonomyFlags, stampSequence,
                         comparisonExpression.getConceptSequence());
                 break;
+            case FEATURE:
+                //TODO - Keith, Dan thinks this is a noop, not sure if correct...
+                break;
             default:
                 throw new UnsupportedOperationException("Can't handle: " + logicalNode.getNodeSemantic());
         }
