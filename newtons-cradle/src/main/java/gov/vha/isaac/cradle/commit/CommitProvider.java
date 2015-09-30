@@ -566,7 +566,7 @@ public class CommitProvider implements CommitService {
 			chronicle.getVersionList().forEach((version) -> {
 				if (((ObjectVersionImpl) version).isUncommitted() && ((ObjectVersionImpl)version).getAuthorSequence() == editCoordinate.getAuthorSequence()) {
 					((ObjectVersionImpl) version).setTime(commitTime);
-					stampsInCommit.add(version.getStampSequence());
+					stampsInCommit.add(((ObjectVersionImpl)version).getStampSequence());
 				}
 			});
 
