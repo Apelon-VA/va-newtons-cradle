@@ -776,6 +776,9 @@ public class CradleTaxonomyProvider implements TaxonomyService, ConceptActiveSer
                         taxonomyFlags, stampSequence,
                         comparisonExpression.getConceptSequence());
                 break;
+            case FEATURE:
+                //TODO - Keith, Dan thinks this is a noop, not sure if correct...
+                break;
             default:
                 throw new UnsupportedOperationException("Can't handle: " + logicalNode.getNodeSemantic());
         }
@@ -813,16 +816,29 @@ public class CradleTaxonomyProvider implements TaxonomyService, ConceptActiveSer
         if (someNode.getTypeConceptSequence() == IsaacMetadataAuxiliaryBinding.ROLE_GROUP.getConceptSequence()) {
             AndNode andNode = (AndNode) someNode.getOnlyChild();
             andNode.getChildStream().forEach((roleGroupSomeNode) -> {
-                updateSomeRole((RoleNodeSomeWithSequences) roleGroupSomeNode,
+                if (roleGroupSomeNode instanceof RoleNodeSomeWithSequences)
+                {
+                    updateSomeRole((RoleNodeSomeWithSequences) roleGroupSomeNode,
                         parentTaxonomyRecord, taxonomyFlags, stampSequence, originSequence);
+                }
+                else
+                {
+                    //TODO Dan put this here to stop a pile of errors....
+                    //one of the types coming back was a FeatureNodeWithSequences - not sure what to do with it.
+                }
             });
 
         } else {
-            ConceptNodeWithSequences restrictionNode = (ConceptNodeWithSequences) someNode.getOnlyChild();
-            parentTaxonomyRecord.getTaxonomyRecordUnpacked()
-                    .addStampRecord(restrictionNode.getConceptSequence(), someNode.getTypeConceptSequence(),
-                            stampSequence, taxonomyFlags.bits);
-            destinationOriginRecordSet.add(new DestinationOriginRecord(restrictionNode.getConceptSequence(), originSequence));
+            if (someNode.getOnlyChild() instanceof ConceptNodeWithSequences) {
+                ConceptNodeWithSequences restrictionNode = (ConceptNodeWithSequences) someNode.getOnlyChild();
+                parentTaxonomyRecord.getTaxonomyRecordUnpacked()
+                        .addStampRecord(restrictionNode.getConceptSequence(), someNode.getTypeConceptSequence(),
+                                stampSequence, taxonomyFlags.bits);
+                destinationOriginRecordSet.add(new DestinationOriginRecord(restrictionNode.getConceptSequence(), originSequence));
+            }
+            else {
+                //TODO dan put this here to stop a pile of errors. It was returning AndNode.  Not sure what to do with it
+            }
         }
     }
 

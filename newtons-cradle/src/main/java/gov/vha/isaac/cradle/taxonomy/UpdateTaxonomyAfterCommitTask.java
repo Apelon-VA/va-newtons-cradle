@@ -22,7 +22,10 @@ import gov.vha.isaac.ochre.api.component.sememe.SememeChronology;
 import gov.vha.isaac.ochre.api.component.sememe.version.LogicGraphSememe;
 import gov.vha.isaac.ochre.api.task.TimedTask;
 import java.util.concurrent.ConcurrentSkipListSet;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.StampedLock;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 /**
  *
@@ -30,6 +33,7 @@ import java.util.concurrent.locks.StampedLock;
  */
 public class UpdateTaxonomyAfterCommitTask extends TimedTask<Void> {
 
+    private static final Logger log = LogManager.getLogger();
     TaxonomyService taxonomyService;
     CommitRecord commitRecord;
     ConcurrentSkipListSet<Integer> sememeSequencesForUnhandledChanges;
@@ -74,15 +78,26 @@ public class UpdateTaxonomyAfterCommitTask extends TimedTask<Void> {
     protected Void call() throws Exception {
         long stamp = lock.writeLock();
         try {
+            AtomicBoolean atLeastOneFailed = new AtomicBoolean(false);
             sememeSequencesForUnhandledChanges.stream().forEach((sememeSequence) -> {
-                workDone++;
-                this.updateProgress(workDone, totalWork);
-                if (commitRecord.getSememesInCommit().contains(sememeSequence)) {
-                    this.updateMessage("Updating taxonomy for: " + sememeSequence);
-                    taxonomyService.updateTaxonomy((SememeChronology<LogicGraphSememe<?>>) Get.sememeService().getSememe(sememeSequence));
-                    sememeSequencesForUnhandledChanges.remove(sememeSequence);
+                try
+                {
+                    workDone++;
+                    this.updateProgress(workDone, totalWork);
+                    if (commitRecord.getSememesInCommit().contains(sememeSequence)) {
+                        this.updateMessage("Updating taxonomy for: " + sememeSequence);
+                        taxonomyService.updateTaxonomy((SememeChronology<LogicGraphSememe<?>>) Get.sememeService().getSememe(sememeSequence));
+                        sememeSequencesForUnhandledChanges.remove(sememeSequence);
+                    }
+                }
+                catch (Exception e) {
+                    log.error("Error handling update taxonomy after commit on sememe " + sememeSequence, e);
+                    atLeastOneFailed.set(true);
                 }
             });
+            if (atLeastOneFailed.get()) {
+                throw new RuntimeException("There were errors during taxonomy update after commit");
+            }
             this.updateMessage("complete");
             return null;
         } finally {

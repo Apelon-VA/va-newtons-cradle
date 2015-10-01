@@ -85,6 +85,7 @@ import gov.vha.isaac.ochre.api.component.concept.ConceptVersion;
 import gov.vha.isaac.ochre.api.component.sememe.SememeChronology;
 import gov.vha.isaac.ochre.api.component.sememe.version.DescriptionSememe;
 import gov.vha.isaac.ochre.api.component.sememe.version.LogicGraphSememe;
+import gov.vha.isaac.ochre.api.component.sememe.version.MutableDescriptionSememe;
 import gov.vha.isaac.ochre.api.component.sememe.version.SememeVersion;
 import gov.vha.isaac.ochre.api.coordinate.EditCoordinate;
 import gov.vha.isaac.ochre.api.coordinate.LanguageCoordinate;
@@ -229,6 +230,8 @@ public class CradleIntegrationTests {
         walkTaxonomy();
 
         findRoots();
+        
+        testComponentCommit();
 
         HashTreeWithBitSets g = makeGraph();
         log.info("    taxonomy graph size:" + g.size());
@@ -300,8 +303,7 @@ public class CradleIntegrationTests {
         statedCount = Get.identifierService().getConceptSequenceStream().filter((conceptSequence) -> {
             return (statedConceptSnapshot.isConceptActive(conceptSequence)
                     && statedSnapshot.getAllRelationshipDestinationSequencesOfType(conceptSequence, typeSequenceSet).count() > 0);
-        }).mapToObj((conceptSequence -> conceptSequence)).sorted((Integer o1, Integer o2) -> Get.conceptDescriptionText(o1)
-                .compareTo(Get.conceptDescriptionText(o2)))
+        }).mapToObj((conceptSequence -> conceptSequence)).sorted()
                 .filter((conceptSequence) -> {
                     String conceptDescriptionText = Get.conceptDescriptionText(conceptSequence);
                     statedListBuilder.append(Get.identifierService().getUuidPrimordialFromConceptSequence(conceptSequence).get().toString());
@@ -496,6 +498,7 @@ public class CradleIntegrationTests {
     }
 
     private void findRoots() {
+    
         try {
             ViewCoordinate vc = ViewCoordinates.getDevelopmentInferredLatestActiveOnly();
             log.info("Walking 10 concepts to root inferred.");
@@ -519,7 +522,6 @@ public class CradleIntegrationTests {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-
     }
 
     private void walkToRoot(int child, TaxonomyService taxonomyService, TaxonomyCoordinate tc,
@@ -916,4 +918,46 @@ public class CradleIntegrationTests {
          }
          
      }
+     
+    private void testComponentCommit() {
+        log.info("=================================");
+        log.info("Test Component Commit");
+        int sememeSequence = Get.identifierService().getSememeSequenceForUuids(UUID.fromString("28b2a997-fa9e-3855-aabd-74b7af7f1490"));  //Anatomical or acquired body structure
+        DescriptionSememe<?> descriptionSememe = null;
+        SememeChronology<DescriptionSememe<?>> chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
+        Optional optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
+        if (optDS.isPresent()) {
+            LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
+            descriptionSememe = (DescriptionSememe) lv.value();
+        }
+        
+        log.info("Initial:                     Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()));
+
+        MutableDescriptionSememe<?> newDescription = chronology.createMutableVersion(MutableDescriptionSememe.class, State.ACTIVE, EditCoordinates.getDefaultUserSolorOverlay());
+        newDescription.setText(descriptionSememe.getText());
+        newDescription.setCaseSignificanceConceptSequence(descriptionSememe.getCaseSignificanceConceptSequence());
+        newDescription.setDescriptionTypeConceptSequence(descriptionSememe.getDescriptionTypeConceptSequence());
+        newDescription.setLanguageConceptSequence(descriptionSememe.getLanguageConceptSequence());
+        Get.commitService().addUncommitted(chronology);
+        
+        log.info("After Mutable Create:        Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()));
+        
+        Get.commitService().commit(chronology, EditCoordinates.getDefaultUserSolorOverlay(), "test commit");
+        
+        log.info("After Component Commit:      Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(newDescription.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(newDescription.getStampSequence()));
+        
+        chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
+        optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
+        if (optDS.isPresent()) {
+            LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
+            descriptionSememe = (DescriptionSememe) lv.value();
+        }        
+
+        log.info("Chronology reloaded from DB: Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()), "This should have been committed!");
+        log.info("=================================");
+    }
 }
