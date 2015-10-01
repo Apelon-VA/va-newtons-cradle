@@ -120,8 +120,7 @@ public class CradleIntegrationTests {
         try {
             CradleIntegrationTests cit = new CradleIntegrationTests();
             cit.setUpSuite();
-            //cit.testLoad();
-            cit.testComponentCommit();
+            cit.testLoad();
             cit.tearDownSuite();
         } catch (Exception ex) {
             log.fatal(ex.getLocalizedMessage(), ex);
@@ -231,6 +230,8 @@ public class CradleIntegrationTests {
         walkTaxonomy();
 
         findRoots();
+        
+        testComponentCommit();
 
         HashTreeWithBitSets g = makeGraph();
         log.info("    taxonomy graph size:" + g.size());
@@ -497,7 +498,7 @@ public class CradleIntegrationTests {
     }
 
     private void findRoots() {
-    	/*
+    
         try {
             ViewCoordinate vc = ViewCoordinates.getDevelopmentInferredLatestActiveOnly();
             log.info("Walking 10 concepts to root inferred.");
@@ -521,8 +522,6 @@ public class CradleIntegrationTests {
         } catch (IOException ex) {
             throw new RuntimeException(ex);
         }
-            */
-
     }
 
     private void walkToRoot(int child, TaxonomyService taxonomyService, TaxonomyCoordinate tc,
@@ -920,41 +919,45 @@ public class CradleIntegrationTests {
          
      }
      
-	private void testComponentCommit() {
-		log.info("=================================");
-		log.info("Test Component Commit");
-		int sememeSequence = 4738490;
-		DescriptionSememe<?> descriptionSememe = null;
-		SememeChronology<DescriptionSememe<?>> chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
-		Optional optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
-		if (optDS.isPresent()) {
-			LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
-			descriptionSememe = (DescriptionSememe) lv.value();
-		}
-		
-		log.info("Initial:                     Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+    private void testComponentCommit() {
+        log.info("=================================");
+        log.info("Test Component Commit");
+        int sememeSequence = 4738490;
+        DescriptionSememe<?> descriptionSememe = null;
+        SememeChronology<DescriptionSememe<?>> chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
+        Optional optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
+        if (optDS.isPresent()) {
+            LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
+            descriptionSememe = (DescriptionSememe) lv.value();
+        }
+        
+        log.info("Initial:                     Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()));
 
-		MutableDescriptionSememe<?> newDescription = chronology.createMutableVersion(MutableDescriptionSememe.class, State.ACTIVE, EditCoordinates.getDefaultUserSolorOverlay());
-		newDescription.setText(descriptionSememe.getText());
-		newDescription.setCaseSignificanceConceptSequence(descriptionSememe.getCaseSignificanceConceptSequence());
-		newDescription.setDescriptionTypeConceptSequence(descriptionSememe.getDescriptionTypeConceptSequence());
-		newDescription.setLanguageConceptSequence(descriptionSememe.getLanguageConceptSequence());
-		Get.commitService().addUncommitted(chronology);
-		
-		log.info("After Mutable Create:        Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
-		
-		Get.commitService().commit(chronology, EditCoordinates.getDefaultUserSolorOverlay(), "test commit");
-		
-		log.info("After Component Commit:      Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(newDescription.getStampSequence())));
-		
-		chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
-		optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
-		if (optDS.isPresent()) {
-			LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
-			descriptionSememe = (DescriptionSememe) lv.value();
-		}		
+        MutableDescriptionSememe<?> newDescription = chronology.createMutableVersion(MutableDescriptionSememe.class, State.ACTIVE, EditCoordinates.getDefaultUserSolorOverlay());
+        newDescription.setText(descriptionSememe.getText());
+        newDescription.setCaseSignificanceConceptSequence(descriptionSememe.getCaseSignificanceConceptSequence());
+        newDescription.setDescriptionTypeConceptSequence(descriptionSememe.getDescriptionTypeConceptSequence());
+        newDescription.setLanguageConceptSequence(descriptionSememe.getLanguageConceptSequence());
+        Get.commitService().addUncommitted(chronology);
+        
+        log.info("After Mutable Create:        Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()));
+        
+        Get.commitService().commit(chronology, EditCoordinates.getDefaultUserSolorOverlay(), "test commit");
+        
+        log.info("After Component Commit:      Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(newDescription.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(newDescription.getStampSequence()));
+        
+        chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
+        optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
+        if (optDS.isPresent()) {
+            LatestVersion<DescriptionSememe> lv = (LatestVersion) optDS.get();
+            descriptionSememe = (DescriptionSememe) lv.value();
+        }        
 
-		log.info("Chronology reloaded from DB: Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
-		log.info("=================================");
-	}
+        log.info("Chronology reloaded from DB: Uncomitted: " + Boolean.toString(Get.commitService().isUncommitted(descriptionSememe.getStampSequence())));
+        assertFalse(Get.commitService().isUncommitted(descriptionSememe.getStampSequence()), "This should have been committed!");
+        log.info("=================================");
+    }
 }
