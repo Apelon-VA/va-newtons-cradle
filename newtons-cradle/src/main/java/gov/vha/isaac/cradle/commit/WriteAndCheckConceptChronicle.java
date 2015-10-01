@@ -76,7 +76,8 @@ public class WriteAndCheckConceptChronicle extends Task<Void> implements Callabl
             }
 
             updateProgress(2, 3);
-            updateMessage("notifying: " + Get.conceptDescriptionText(cc.getConceptSequence()));
+          //TODO dan disabled for the same reason as above.
+            updateMessage("notifying nid: " + cc.getNid());// Get.conceptDescriptionText(cc.getConceptSequence()));
 
              changeListeners.forEach((listenerRef) -> {
                 ChronologyChangeListener listener = listenerRef.get();
@@ -88,7 +89,8 @@ public class WriteAndCheckConceptChronicle extends Task<Void> implements Callabl
              });
 
             updateProgress(3, 3);
-            updateMessage("complete: " + Get.conceptDescriptionText(cc.getConceptSequence()));
+            //TODO dan disabled for the same reason as above.
+            updateMessage("complete nid: " + cc.getNid());// Get.conceptDescriptionText(cc.getConceptSequence()));
             
              return null;
         } finally {
