@@ -922,7 +922,7 @@ public class CradleIntegrationTests {
     private void testComponentCommit() {
         log.info("=================================");
         log.info("Test Component Commit");
-        int sememeSequence = 4738490;
+        int sememeSequence = Get.identifierService().getSememeSequenceForUuids(UUID.fromString("28b2a997-fa9e-3855-aabd-74b7af7f1490"));  //Anatomical or acquired body structure
         DescriptionSememe<?> descriptionSememe = null;
         SememeChronology<DescriptionSememe<?>> chronology = (SememeChronology<DescriptionSememe<?>>)Get.sememeService().getSememe(sememeSequence);
         Optional optDS = ((SememeChronology)chronology).getLatestVersion(DescriptionSememe.class, StampCoordinates.getDevelopmentLatest());
